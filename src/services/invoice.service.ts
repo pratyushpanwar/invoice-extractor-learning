@@ -1,3 +1,5 @@
+import { pool } from '../config/db.js'
+
 interface Invoice {
     id: string,
     vendor: string,
@@ -17,21 +19,30 @@ const invoices: Invoice[] = [
   }
 ]
 
-export function getAllInvoices(){
-    return invoices
+export async function getAllInvoices(){
+    const result = await pool.query(
+        'SELECT * FROM invoices ORDER BY id'
+    )
+    return result.rows;
 }
 
-export function getInvoice(id: string){
-    return invoices.find((invoice) => invoice.id === id)
+export async function getInvoice(id: string){
+    const result = await pool.query(
+        'SELECT * FROM invoices WHERE id = $1',
+        [id]
+    );
+
+    return result.rows[0] ?? null;
 }
 
-export function addInvoice(invoice: Omit<Invoice, "id">){
-    const newInvoice: Invoice = {
-        id: crypto.randomUUID(),
-        ...invoice
-    }
+export async function addInvoice(invoice: Omit<Invoice, "id">){
+    const result = await pool.query(
+        `INSERT INTO invoices (vendor, total) 
+         VALUES ($1, $2)
+         RETURNING *;`,
+         [invoice.vendor, invoice.total]
+    )
 
-    invoices.push(newInvoice);
+    return result.rows[0]
 
-    return newInvoice;
 }
